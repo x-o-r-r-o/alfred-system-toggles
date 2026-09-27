@@ -1,0 +1,367 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>bundleid</key>
+	<string>io.github.x-o-r-r-o.system-toggles</string>
+	<key>category</key>
+	<string>Productivity</string>
+	<key>connections</key>
+	<dict>
+		<key>85262FA8-2731-5D47-99F4-7D153ACCDF7A</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>957E2BC6-BD36-5E20-B512-BCB08F86E34D</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>957E2BC6-BD36-5E20-B512-BCB08F86E34D</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>9CA3B0A7-6C8A-50A9-8650-977BE9416492</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
+				<string>9CA3B0A7-6C8A-50A9-8650-977BE9416492</string>
+				<key>modifiers</key>
+				<integer>1048576</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
+				<string>9CA3B0A7-6C8A-50A9-8650-977BE9416492</string>
+				<key>modifiers</key>
+				<integer>524288</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
+				<string>9CA3B0A7-6C8A-50A9-8650-977BE9416492</string>
+				<key>modifiers</key>
+				<integer>262144</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>9CA3B0A7-6C8A-50A9-8650-977BE9416492</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>65294082-B2C7-5279-BA7E-EC55FC9682D8</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+	</dict>
+	<key>createdby</key>
+	<string>x-o-r-r-o</string>
+	<key>description</key>
+	<string>Dark Mode, Night Shift, Focus, Keep Awake, hidden files, Dock, input sources, eject disks and more, with their current state</string>
+	<key>disabled</key>
+	<false/>
+	<key>name</key>
+	<string>System Toggles</string>
+	<key>objects</key>
+	<array>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>alfredfiltersresults</key>
+				<false/>
+				<key>alfredfiltersresultsmatchmode</key>
+				<integer>0</integer>
+				<key>argumenttreatemptyqueryasnil</key>
+				<true/>
+				<key>argumenttrimmode</key>
+				<integer>0</integer>
+				<key>argumenttype</key>
+				<integer>1</integer>
+				<key>escaping</key>
+				<integer>102</integer>
+				<key>keyword</key>
+				<string>{var:keyword_tog}</string>
+				<key>queuedelaycustom</key>
+				<integer>3</integer>
+				<key>queuedelayimmediatelyinitially</key>
+				<true/>
+				<key>queuedelaymode</key>
+				<integer>0</integer>
+				<key>queuemode</key>
+				<integer>1</integer>
+				<key>runningsubtext</key>
+				<string>…</string>
+				<key>script</key>
+				<string>osascript -l JavaScript ./toggles.js list "$1"</string>
+				<key>scriptargtype</key>
+				<integer>1</integer>
+				<key>scriptfile</key>
+				<string></string>
+				<key>skipuniversalaction</key>
+				<true/>
+				<key>subtext</key>
+				<string>Dark Mode, Night Shift, Focus, Dock, eject and more</string>
+				<key>title</key>
+				<string>System Toggles</string>
+				<key>type</key>
+				<integer>0</integer>
+				<key>withspace</key>
+				<true/>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.input.scriptfilter</string>
+			<key>uid</key>
+			<string>957E2BC6-BD36-5E20-B512-BCB08F86E34D</string>
+			<key>version</key>
+			<integer>3</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>action</key>
+				<integer>0</integer>
+				<key>argument</key>
+				<integer>0</integer>
+				<key>focusedappvariable</key>
+				<false/>
+				<key>focusedappvariablename</key>
+				<string></string>
+				<key>hotkey</key>
+				<integer>0</integer>
+				<key>hotmod</key>
+				<integer>0</integer>
+				<key>hotstring</key>
+				<string></string>
+				<key>leftcursor</key>
+				<false/>
+				<key>modsmode</key>
+				<integer>0</integer>
+				<key>relatedAppsMode</key>
+				<integer>0</integer>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.trigger.hotkey</string>
+			<key>uid</key>
+			<string>85262FA8-2731-5D47-99F4-7D153ACCDF7A</string>
+			<key>version</key>
+			<integer>2</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>concurrently</key>
+				<false/>
+				<key>escaping</key>
+				<integer>102</integer>
+				<key>script</key>
+				<string>osascript -l JavaScript ./toggles.js act "$1"</string>
+				<key>scriptargtype</key>
+				<integer>1</integer>
+				<key>scriptfile</key>
+				<string></string>
+				<key>type</key>
+				<integer>0</integer>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.action.script</string>
+			<key>uid</key>
+			<string>9CA3B0A7-6C8A-50A9-8650-977BE9416492</string>
+			<key>version</key>
+			<integer>2</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>lastpathcomponent</key>
+				<false/>
+				<key>onlyshowifquerypopulated</key>
+				<true/>
+				<key>removeextension</key>
+				<false/>
+				<key>text</key>
+				<string>{query}</string>
+				<key>title</key>
+				<string>{var:alfred_workflow_name}</string>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.output.notification</string>
+			<key>uid</key>
+			<string>65294082-B2C7-5279-BA7E-EC55FC9682D8</string>
+			<key>version</key>
+			<integer>1</integer>
+		</dict>
+	</array>
+	<key>readme</key>
+	<string>## Usage
+
+See every toggle with its current state via the `tog` keyword. A toggle that’s on is marked ✓. Type part of a name, a synonym or initials to filter, like `tog dark`, `tog caffeine` or `tog dm`.
+
+* &lt;kbd&gt;↩&lt;/kbd&gt; Turn the setting on or off, or run the action.
+* &lt;kbd&gt;⌘&lt;/kbd&gt;&lt;kbd&gt;↩&lt;/kbd&gt; Turn it on or off and keep the list open, to change several in a row.
+* &lt;kbd&gt;⇥&lt;/kbd&gt; Open the choices of rows that have them (Focus, Keep Awake, Input Source, Eject).
+
+Desktop icons and hidden files are Finder settings that Finder only reads when it starts, so changing them restarts Finder. It reopens its windows, but let file copies finish first. On macOS 14 and 15, hiding desktop icons uses “Show Items on Desktop” and doesn’t restart Finder.
+
+Changing Low Power Mode asks for an administrator password in macOS’s own dialog, which says what will change.
+
+### Focus
+
+macOS has no way for other apps to change Focus, so it runs a Shortcut of yours. Create one in Shortcuts with the “Set Focus” action set to Toggle, then pick it via `tog focus`. It’s remembered from then on, or set it in the Workflow’s Configuration. The ✓ state of Focus shows only when Alfred has Full Disk Access.
+
+### Keep Awake
+
+Keep your Mac awake for 15 minutes to 4 hours or until you stop it via `tog awake`, or type any duration, like `tog awake 45`, `tog awake 1h30` or `tog awake 2h`. While it’s on, the row shows the time left and &lt;kbd&gt;↩&lt;/kbd&gt; stops it. Whether the display stays on too is set in the Workflow’s Configuration.
+
+### Input Sources
+
+Switch to the next keyboard layout or input method with &lt;kbd&gt;↩&lt;/kbd&gt; on the Input Source row, or list them all via `tog input` and type part of a name, like `tog input russ`.
+
+### Eject
+
+Eject all external disks, disk images and network shares at once, or pick one via `tog eject`. A disk with several volumes is ejected as a whole. When an app is using a disk, the notification names the app.
+
+* &lt;kbd&gt;↩&lt;/kbd&gt; Eject the disk.
+* &lt;kbd&gt;⌥&lt;/kbd&gt;&lt;kbd&gt;↩&lt;/kbd&gt; Force eject, even when an app is using it. Unsaved changes on the disk may be lost.
+* &lt;kbd&gt;⌃&lt;/kbd&gt;&lt;kbd&gt;↩&lt;/kbd&gt; Unmount only this volume and keep the rest of the disk.
+* &lt;kbd&gt;⌘&lt;/kbd&gt;&lt;kbd&gt;↩&lt;/kbd&gt; Reveal in Finder.
+* &lt;kbd&gt;⌘&lt;/kbd&gt;&lt;kbd&gt;Y&lt;/kbd&gt; Quick Look the volume.
+
+### Dock, Screen and Apps
+
+Choose the Dock position via `tog position`. The list also starts the screen saver, locks the screen, puts the displays to sleep, and hides all apps or every app but the frontmost one.
+
+Configure the Hotkey to show the toggles from anywhere. The keyword can be changed in the Workflow’s Configuration.
+</string>
+	<key>uidata</key>
+	<dict>
+		<key>65294082-B2C7-5279-BA7E-EC55FC9682D8</key>
+		<dict>
+			<key>xpos</key>
+			<integer>690</integer>
+			<key>ypos</key>
+			<integer>20</integer>
+		</dict>
+		<key>85262FA8-2731-5D47-99F4-7D153ACCDF7A</key>
+		<dict>
+			<key>note</key>
+			<string>Show the toggles</string>
+			<key>xpos</key>
+			<integer>30</integer>
+			<key>ypos</key>
+			<integer>20</integer>
+		</dict>
+		<key>957E2BC6-BD36-5E20-B512-BCB08F86E34D</key>
+		<dict>
+			<key>xpos</key>
+			<integer>250</integer>
+			<key>ypos</key>
+			<integer>20</integer>
+		</dict>
+		<key>9CA3B0A7-6C8A-50A9-8650-977BE9416492</key>
+		<dict>
+			<key>note</key>
+			<string>Runs the selected toggle or action</string>
+			<key>xpos</key>
+			<integer>470</integer>
+			<key>ypos</key>
+			<integer>20</integer>
+		</dict>
+	</dict>
+	<key>userconfigurationconfig</key>
+	<array>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>default</key>
+				<string>tog</string>
+				<key>placeholder</key>
+				<string>tog</string>
+				<key>required</key>
+				<true/>
+				<key>trim</key>
+				<true/>
+			</dict>
+			<key>description</key>
+			<string>Lists every toggle with its current state</string>
+			<key>label</key>
+			<string>Keyword</string>
+			<key>type</key>
+			<string>textfield</string>
+			<key>variable</key>
+			<string>keyword_tog</string>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>default</key>
+				<string></string>
+				<key>placeholder</key>
+				<string>Toggle Focus</string>
+				<key>required</key>
+				<false/>
+				<key>trim</key>
+				<true/>
+			</dict>
+			<key>description</key>
+			<string>The Shortcut that turns Focus on and off (a “Set Focus” action set to Toggle). Leave empty to pick one from the list.</string>
+			<key>label</key>
+			<string>Focus Shortcut</string>
+			<key>type</key>
+			<string>textfield</string>
+			<key>variable</key>
+			<string>focus_shortcut</string>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>default</key>
+				<true/>
+				<key>required</key>
+				<false/>
+				<key>text</key>
+				<string>Keep the display on too</string>
+			</dict>
+			<key>description</key>
+			<string>Otherwise only the Mac stays awake and the display may still turn off.</string>
+			<key>label</key>
+			<string>Keep Awake</string>
+			<key>type</key>
+			<string>checkbox</string>
+			<key>variable</key>
+			<string>awake_display</string>
+		</dict>
+	</array>
+	<key>variables</key>
+	<dict/>
+	<key>variablesdontexport</key>
+	<array/>
+	<key>version</key>
+	<string>1.0.0</string>
+	<key>webaddress</key>
+	<string>https://github.com/x-o-r-r-o/alfred-system-toggles</string>
+</dict>
+</plist>

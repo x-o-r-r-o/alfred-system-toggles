@@ -1,0 +1,80 @@
+{
+  "bundleid": "io.github.x-o-r-r-o.system-toggles",
+  "name": "System Toggles",
+  "description": "Dark Mode, Night Shift, Focus, Keep Awake, hidden files, Dock, input sources, eject disks and more, with their current state",
+  "category": "Productivity",
+  "createdby": "x-o-r-r-o",
+  "webaddress": "https://github.com/x-o-r-r-o/alfred-system-toggles",
+  "version": "1.0.0",
+  "variablesdontexport": [],
+  "config": [
+    {
+      "type": "textfield",
+      "variable": "keyword_tog",
+      "label": "Keyword",
+      "description": "Lists every toggle with its current state",
+      "config": {
+        "default": "tog",
+        "placeholder": "tog",
+        "required": true,
+        "trim": true
+      }
+    },
+    {
+      "type": "textfield",
+      "variable": "focus_shortcut",
+      "label": "Focus Shortcut",
+      "description": "The Shortcut that turns Focus on and off (a “Set Focus” action set to Toggle). Leave empty to pick one from the list.",
+      "config": {
+        "default": "",
+        "placeholder": "Toggle Focus",
+        "required": false,
+        "trim": true
+      }
+    },
+    {
+      "type": "checkbox",
+      "variable": "awake_display",
+      "label": "Keep Awake",
+      "description": "Otherwise only the Mac stays awake and the display may still turn off.",
+      "config": {
+        "default": true,
+        "required": false,
+        "text": "Keep the display on too"
+      }
+    }
+  ],
+  "objects": [
+    {
+      "id": "sf_tog",
+      "type": "scriptfilter",
+      "keyword": "{var:keyword_tog}",
+      "title": "System Toggles",
+      "subtext": "Dark Mode, Night Shift, Focus, Dock, eject and more",
+      "script": "osascript -l JavaScript ./toggles.js list \"$1\""
+    },
+    {
+      "id": "hk_tog",
+      "type": "hotkey",
+      "note": "Show the toggles"
+    },
+    {
+      "id": "act",
+      "type": "script",
+      "script": "osascript -l JavaScript ./toggles.js act \"$1\"",
+      "note": "Runs the selected toggle or action"
+    },
+    {
+      "id": "notify",
+      "type": "notification"
+    }
+  ],
+  "connections": [
+    {"from": "hk_tog", "to": "sf_tog"},
+    {"from": "sf_tog", "to": "act"},
+    {"from": "sf_tog", "to": "act", "mod": "cmd"},
+    {"from": "sf_tog", "to": "act", "mod": "alt"},
+    {"from": "sf_tog", "to": "act", "mod": "ctrl"},
+    {"from": "act", "to": "notify"}
+  ]
+}
