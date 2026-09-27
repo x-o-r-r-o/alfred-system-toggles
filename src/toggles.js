@@ -614,8 +614,15 @@ function awakeState() {
   if (!(pid > 0) || !processAlive(pid)) return null;
   const until = Number(s.until) || 0;
   const now = nowMs();
+  // Started before the last boot: the pid now belongs to another process (a reused pid).
+  if (!(Number(s.started) >= bootMs())) return null;
   if (until && until <= now) return null;
   return { pid, until, left: until ? (until - now) / 60000 : null };
+}
+
+function bootMs() {
+  if (FIXTURE) return Number(FIXTURE.bootMs) || 0;
+  return Date.now() - Number($.NSProcessInfo.processInfo.systemUptime) * 1000 - 60000; // a minute of slack
 }
 
 // "45", "45m", "1h", "1.5h", "1h30", "1h 30m", "1:30", "2 hours" → minutes; null if not a duration

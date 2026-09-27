@@ -434,6 +434,15 @@ class Audit2RegressionTests(unittest.TestCase):
         self.assertEqual(act({"op": "open", "url": "shortcuts://run-shortcut?name=x"}), "")
 
 
+class Audit3RegressionTests(unittest.TestCase):
+    def test_state_from_before_boot_is_stale(self):
+        d = data_dir("boot")
+        with open(os.path.join(d, "awake.json"), "w") as f:
+            json.dump({"pid": 4242, "until": 0, "started": NOW - 3600000}, f)
+        self.assertEqual(find(sf(fx=fixture(alive=[4242], bootMs=NOW - 60000), data=d), "Keep Awake")["title"], "Keep Awake: Off")
+        self.assertIn("On ✓", find(sf(fx=fixture(alive=[4242], bootMs=NOW - 7200000), data=d), "Keep Awake")["title"])
+
+
 class ToggleActionTests(unittest.TestCase):
     def test_system_events_toggles(self):
         self.assertEqual(act({"op": "toggle", "id": "dark", "value": False}), "DRY RUN: System Events: dark mode = false\n☀️ Dark Mode off")
