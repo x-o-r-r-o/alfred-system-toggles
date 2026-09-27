@@ -423,6 +423,17 @@ class AuditRegressionTests(unittest.TestCase):
         sf("focus", fx=fixture(shortcuts=["Toggle Focus", "Toggle Focus", "A"]))  # validate() rejects duplicate uids
 
 
+class Audit2RegressionTests(unittest.TestCase):
+    def test_awake_display_config_shapes(self):
+        d = data_dir("cfg")
+        for value, flag in (("", "-di"), ("1", "-di"), (" 1 ", "-di"), ("0", "-i"), (" 0 ", "-i"), ("false", "-i")):
+            out = act({"op": "awake", "minutes": 5}, data=d, awake_display=value)
+            self.assertIn("/usr/bin/caffeinate %s -t 300" % flag, out, repr(value))
+
+    def test_only_the_create_shortcut_url(self):
+        self.assertEqual(act({"op": "open", "url": "shortcuts://run-shortcut?name=x"}), "")
+
+
 class ToggleActionTests(unittest.TestCase):
     def test_system_events_toggles(self):
         self.assertEqual(act({"op": "toggle", "id": "dark", "value": False}), "DRY RUN: System Events: dark mode = false\n☀️ Dark Mode off")

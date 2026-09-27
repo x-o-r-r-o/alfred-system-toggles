@@ -289,7 +289,7 @@ function automationMessage(what) {
 }
 
 function openURL(url) {
-  if (!/^(https|x-apple\.systempreferences|shortcuts):/.test(url)) return;
+  if (!/^(https:|x-apple\.systempreferences:)/.test(url) && url !== "shortcuts://create-shortcut") return;
   if (DRY) return dry(`open ${url}`);
   ObjC.import("AppKit");
   $.NSWorkspace.sharedWorkspace.openURL($.NSURL.URLWithString(url));
@@ -634,7 +634,8 @@ const MAX_AWAKE = 7 * 24 * 60;
 
 function awakeStart(minutes) {
   awakeStop(true);
-  const display = boolish(env("awake_display", "1"), true);
+  // Alfred passes a checkbox as "1"/"0"; an empty or unset value means the default (on)
+  const display = boolish(String(env("awake_display", "")).trim() || "1", true);
   const args = ["/usr/bin/caffeinate", display ? "-di" : "-i"];
   if (minutes) args.push("-t", String(minutes * 60));
   let pid;
