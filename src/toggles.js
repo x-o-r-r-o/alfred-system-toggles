@@ -238,20 +238,24 @@ const FIXTURE = FIXTURE_PATH ? readObject(FIXTURE_PATH) : null;
 
 // ---------- apps ----------
 
-function appRunning(bundleId) {
-  if (FIXTURE) return (FIXTURE.running || ["com.apple.finder", "com.apple.dock"]).includes(bundleId);
-  ObjC.import("AppKit");
-  return $.NSRunningApplication.runningApplicationsWithBundleIdentifier(bundleId).count > 0;
-}
-
 // Finder reads CreateDesktop and AppleShowAllFiles only at launch. `killall` sends SIGTERM, which
 // Finder handles like Quit (open windows are restored); if it doesn't come back by itself, open it.
+// NSWorkspace's app list doesn't refresh in a script without a run loop, so ask pgrep, and wait for
+// a Finder with a new pid: the old one may still be quitting right after killall.
+function finderPids() {
+  const r = spawn("/usr/bin/pgrep", ["-x", "-u", String($.NSUserName().js), "Finder"], 5);
+  return r.out.split("\n").map((x) => parseInt(x, 10)).filter((x) => x > 0);
+}
 function restartFinder() {
+  if (DRY) {
+    exec("/usr/bin/killall", ["Finder"]);
+    return;
+  }
+  const before = finderPids();
   exec("/usr/bin/killall", ["Finder"]);
-  if (DRY) return;
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 40; i++) {
     $.NSThread.sleepForTimeInterval(0.1);
-    if (appRunning("com.apple.finder")) return;
+    if (finderPids().some((p) => !before.includes(p))) return;
   }
   spawn("/usr/bin/open", ["-g", "-b", "com.apple.finder"]);
 }
@@ -413,8 +417,8 @@ function focusChoicePath() {
 
 // The Shortcut that toggles Focus: the Workflow’s Configuration wins, then the one picked in the list.
 function focusShortcut() {
-  const configured = clean(env("focus_shortcut", ""));
-  if (configured) return { name: configured, configured: true };
+  const configured = String(env("focus_shortcut", "")).trim(); // the exact name: Shortcuts matches it literally
+  if (clean(configured)) return { name: configured, configured: true };
   const saved = readObject(focusChoicePath()).shortcut;
   return typeof saved === "string" && clean(saved) ? { name: saved, configured: false } : null;
 }
@@ -977,7 +981,8 @@ function ejectItems(rest) {
       const it = {
         uid: `vol:${v.path}`, title: name, subtitle: `↩ Eject${also}${details ? ` · ${details}` : ""}`,
         arg: action("eject", { path: v.path }), icon: icon(v.network ? "network" : v.readonly && v.ejectable && !v.removable ? "image" : "disk"),
-        type: "file:skipcheck", quicklookurl: v.path, text: { copy: v.path, largetype: name },
+        // no `type: "file"`: the arg is an action, and File Actions would receive it as a path
+        quicklookurl: v.path, text: { copy: v.path, largetype: name },
         mods: {
           alt: { subtitle: "Force eject, even when an app is using it (unsaved changes may be lost)", arg: action("eject", { path: v.path, force: true }), valid: true },
           cmd: { subtitle: "Reveal in Finder", arg: action("reveal", { path: v.path }), valid: true },
@@ -1051,7 +1056,7 @@ function focusItems(rest) {
   if (names === null) return items.concat(info("Couldn’t list your Shortcuts", "", "error", { uid: "focus:error" }));
   const words = fold(rest).split(/\s+/).filter(Boolean);
   const focusish = (n) => /focus|disturb|\bdnd\b|konzentr|concentr|nicht st|ne pas d/i.test(n);
-  const list = names
+  const list = [...new Set(names)]
     .filter((n) => !words.length || words.every((w) => fold(n).includes(w)))
     .sort((a, b) => Number(focusish(b)) - Number(focusish(a)))
     .slice(0, 50);
@@ -1341,7 +1346,7 @@ function act(json) {
     case "open": openURL(String(a.url || "")); msg = undefined; break;
     default: return "Unknown action";
   }
-  if (a.reopen === true) {
+  if (a.reopen === true && !/^Couldn’t|^Invalid|^Unknown/.test(msg || "")) {
     if (!DRY) $.NSThread.sleepForTimeInterval(0.3); // let the change settle so the list shows the new state
     alfredSearch(`${keyword()} ${typeof a.query === "string" ? a.query : ""}`);
   }

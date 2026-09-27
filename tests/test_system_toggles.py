@@ -242,7 +242,8 @@ class EjectTests(unittest.TestCase):
         self.assertIn("ctrl", wd["mods"])
         self.assertNotIn("ctrl", find(it, "Share")["mods"])
         self.assertEqual(find(it, "Share")["icon"]["path"], "icons/network.png")
-        self.assertEqual(wd["type"], "file:skipcheck")
+        self.assertNotIn("type", wd)  # audit 1: a file row would hand the JSON arg to File Actions
+        self.assertEqual(wd["quicklookurl"], "/Volumes/Work Drive")
         self.assertEqual(titles(sf("eject phot")), ["Photos"])
         self.assertEqual(sf("unmount zzz")[0]["title"], "No matching disk")
 
@@ -406,6 +407,20 @@ class FocusTests(unittest.TestCase):
         self.assertEqual(act({"op": "focus", "name": "  "}), "Pick a Focus Shortcut first")
         out = act({"op": "focus", "name": "-h; rm -rf ~"})
         self.assertIn("shortcuts run -- '-h; rm -rf ~'", out)
+
+
+class AuditRegressionTests(unittest.TestCase):
+    def test_configured_focus_name_kept_exactly(self):
+        row = find(sf(focus_shortcut="  My  Focus  "), "Focus")
+        self.assertEqual(arg(row)["name"], "My  Focus")
+        self.assertIn("shortcuts run -- 'My  Focus'", act(arg(row)))
+
+    def test_no_reopen_after_failure(self):
+        out = act({"op": "position", "value": "top", "reopen": True, "query": ""})
+        self.assertNotIn("Alfred search", out)
+
+    def test_duplicate_shortcut_names(self):
+        sf("focus", fx=fixture(shortcuts=["Toggle Focus", "Toggle Focus", "A"]))  # validate() rejects duplicate uids
 
 
 class ToggleActionTests(unittest.TestCase):
