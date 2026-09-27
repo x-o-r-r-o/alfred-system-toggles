@@ -8,11 +8,37 @@
 	<string>Productivity</string>
 	<key>connections</key>
 	<dict>
+		<key>6B971C35-1FEF-5030-B963-2F431465FB25</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>860A059C-29B4-5CF2-8403-EBFB13057BB7</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
 		<key>85262FA8-2731-5D47-99F4-7D153ACCDF7A</key>
 		<array>
 			<dict>
 				<key>destinationuid</key>
 				<string>957E2BC6-BD36-5E20-B512-BCB08F86E34D</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>860A059C-29B4-5CF2-8403-EBFB13057BB7</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>65294082-B2C7-5279-BA7E-EC55FC9682D8</string>
 				<key>modifiers</key>
 				<integer>0</integer>
 				<key>modifiersubtext</key>
@@ -65,6 +91,32 @@
 			</dict>
 		</array>
 		<key>9CA3B0A7-6C8A-50A9-8650-977BE9416492</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>65294082-B2C7-5279-BA7E-EC55FC9682D8</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>DAC7645D-A72C-5A6A-A1D3-DE8B9315532E</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>FD55D898-131B-5D7A-8F65-B1D74CE2F639</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>FD55D898-131B-5D7A-8F65-B1D74CE2F639</key>
 		<array>
 			<dict>
 				<key>destinationuid</key>
@@ -196,6 +248,114 @@
 		<dict>
 			<key>config</key>
 			<dict>
+				<key>action</key>
+				<integer>0</integer>
+				<key>argument</key>
+				<integer>0</integer>
+				<key>focusedappvariable</key>
+				<false/>
+				<key>focusedappvariablename</key>
+				<string></string>
+				<key>hotkey</key>
+				<integer>0</integer>
+				<key>hotmod</key>
+				<integer>0</integer>
+				<key>hotstring</key>
+				<string></string>
+				<key>leftcursor</key>
+				<false/>
+				<key>modsmode</key>
+				<integer>0</integer>
+				<key>relatedAppsMode</key>
+				<integer>0</integer>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.trigger.hotkey</string>
+			<key>uid</key>
+			<string>6B971C35-1FEF-5030-B963-2F431465FB25</string>
+			<key>version</key>
+			<integer>2</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>concurrently</key>
+				<false/>
+				<key>escaping</key>
+				<integer>102</integer>
+				<key>script</key>
+				<string>osascript -l JavaScript ./toggles.js act '{"op":"flip","id":"dark"}'</string>
+				<key>scriptargtype</key>
+				<integer>1</integer>
+				<key>scriptfile</key>
+				<string></string>
+				<key>type</key>
+				<integer>0</integer>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.action.script</string>
+			<key>uid</key>
+			<string>860A059C-29B4-5CF2-8403-EBFB13057BB7</string>
+			<key>version</key>
+			<integer>2</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>action</key>
+				<integer>0</integer>
+				<key>argument</key>
+				<integer>0</integer>
+				<key>focusedappvariable</key>
+				<false/>
+				<key>focusedappvariablename</key>
+				<string></string>
+				<key>hotkey</key>
+				<integer>0</integer>
+				<key>hotmod</key>
+				<integer>0</integer>
+				<key>hotstring</key>
+				<string></string>
+				<key>leftcursor</key>
+				<false/>
+				<key>modsmode</key>
+				<integer>0</integer>
+				<key>relatedAppsMode</key>
+				<integer>0</integer>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.trigger.hotkey</string>
+			<key>uid</key>
+			<string>DAC7645D-A72C-5A6A-A1D3-DE8B9315532E</string>
+			<key>version</key>
+			<integer>2</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>concurrently</key>
+				<false/>
+				<key>escaping</key>
+				<integer>102</integer>
+				<key>script</key>
+				<string>osascript -l JavaScript ./toggles.js act '{"op":"flip","id":"awake"}'</string>
+				<key>scriptargtype</key>
+				<integer>1</integer>
+				<key>scriptfile</key>
+				<string></string>
+				<key>type</key>
+				<integer>0</integer>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.action.script</string>
+			<key>uid</key>
+			<string>FD55D898-131B-5D7A-8F65-B1D74CE2F639</string>
+			<key>version</key>
+			<integer>2</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
 				<key>lastpathcomponent</key>
 				<false/>
 				<key>onlyshowifquerypopulated</key>
@@ -224,7 +384,7 @@ See every toggle with its current state via the `tog` keyword. A toggle that’s
 * &lt;kbd&gt;⌘&lt;/kbd&gt;&lt;kbd&gt;↩&lt;/kbd&gt; Turn it on or off and keep the list open, to change several in a row.
 * &lt;kbd&gt;⇥&lt;/kbd&gt; Open the choices of rows that have them (Focus, Keep Awake, Input Source, Eject).
 
-Desktop icons and hidden files are Finder settings that Finder only reads when it starts, so changing them restarts Finder. It reopens its windows, but let file copies finish first. On macOS 14 and 15, hiding desktop icons uses “Show Items on Desktop” and doesn’t restart Finder.
+Desktop icons and hidden files are Finder settings that Finder only reads when it starts, so changing them restarts Finder. It reopens its windows, but let file copies finish first. On macOS 14 and 15, hiding desktop icons uses “Show Items on Desktop” (or “In Stage Manager” while Stage Manager is on) and doesn’t restart Finder.
 
 Changing Low Power Mode asks for an administrator password in macOS’s own dialog, which says what will change.
 
@@ -234,7 +394,7 @@ macOS has no way for other apps to change Focus, so it runs a Shortcut of yours.
 
 ### Keep Awake
 
-Keep your Mac awake for 15 minutes to 4 hours or until you stop it via `tog awake`, or type any duration, like `tog awake 45`, `tog awake 1h30` or `tog awake 2h`. While it’s on, the row shows the time left and &lt;kbd&gt;↩&lt;/kbd&gt; stops it. Whether the display stays on too is set in the Workflow’s Configuration.
+Keep your Mac awake for 15 minutes to 4 hours or until you stop it via `tog awake`, or type any duration, like `tog awake 45`, `tog awake 1h30` or `tog awake 2h`. Type a time to stay awake until then, like `tog awake until 17:30` or `tog awake 5pm`, or pick an app via `tog awake while` to stay awake until it quits. While it’s on, the row shows the time left and &lt;kbd&gt;↩&lt;/kbd&gt; stops it. Whether the display stays on too is set in the Workflow’s Configuration.
 
 ### Input Sources
 
@@ -254,7 +414,7 @@ Eject all external disks, disk images and network shares at once, or pick one vi
 
 Choose the Dock position via `tog position`. The list also starts the screen saver, locks the screen, puts the displays to sleep, and hides all apps or every app but the frontmost one.
 
-Configure the Hotkey to show the toggles from anywhere. The keyword can be changed in the Workflow’s Configuration.
+Configure the Hotkeys to show the toggles, turn Dark Mode on or off, or turn Keep Awake on or off from anywhere. The keyword can be changed in the Workflow’s Configuration.
 </string>
 	<key>uidata</key>
 	<dict>
@@ -265,6 +425,15 @@ Configure the Hotkey to show the toggles from anywhere. The keyword can be chang
 			<key>ypos</key>
 			<integer>20</integer>
 		</dict>
+		<key>6B971C35-1FEF-5030-B963-2F431465FB25</key>
+		<dict>
+			<key>note</key>
+			<string>Toggle Dark Mode</string>
+			<key>xpos</key>
+			<integer>30</integer>
+			<key>ypos</key>
+			<integer>150</integer>
+		</dict>
 		<key>85262FA8-2731-5D47-99F4-7D153ACCDF7A</key>
 		<dict>
 			<key>note</key>
@@ -273,6 +442,15 @@ Configure the Hotkey to show the toggles from anywhere. The keyword can be chang
 			<integer>30</integer>
 			<key>ypos</key>
 			<integer>20</integer>
+		</dict>
+		<key>860A059C-29B4-5CF2-8403-EBFB13057BB7</key>
+		<dict>
+			<key>note</key>
+			<string>Turns Dark Mode on or off</string>
+			<key>xpos</key>
+			<integer>250</integer>
+			<key>ypos</key>
+			<integer>150</integer>
 		</dict>
 		<key>957E2BC6-BD36-5E20-B512-BCB08F86E34D</key>
 		<dict>
@@ -289,6 +467,24 @@ Configure the Hotkey to show the toggles from anywhere. The keyword can be chang
 			<integer>470</integer>
 			<key>ypos</key>
 			<integer>20</integer>
+		</dict>
+		<key>DAC7645D-A72C-5A6A-A1D3-DE8B9315532E</key>
+		<dict>
+			<key>note</key>
+			<string>Toggle Keep Awake</string>
+			<key>xpos</key>
+			<integer>30</integer>
+			<key>ypos</key>
+			<integer>280</integer>
+		</dict>
+		<key>FD55D898-131B-5D7A-8F65-B1D74CE2F639</key>
+		<dict>
+			<key>note</key>
+			<string>Keeps the Mac awake until stopped, or stops it</string>
+			<key>xpos</key>
+			<integer>250</integer>
+			<key>ypos</key>
+			<integer>280</integer>
 		</dict>
 	</dict>
 	<key>userconfigurationconfig</key>

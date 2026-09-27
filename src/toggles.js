@@ -202,7 +202,11 @@ function processAlive(pid) {
 }
 
 function processCommand(pid) {
-  if (FIXTURE) return (FIXTURE.alive || []).includes(pid) ? "/usr/bin/caffeinate" : "";
+  if (FIXTURE) {
+    const cmds = FIXTURE.commands || {};
+    if (Object.prototype.hasOwnProperty.call(cmds, String(pid))) return String(cmds[String(pid)]);
+    return (FIXTURE.alive || []).includes(pid) ? "/usr/bin/caffeinate" : "";
+  }
   const r = spawn("/bin/ps", ["-p", String(pid), "-o", "comm="], 5);
   return r.status === 0 ? r.out.trim() : "";
 }
@@ -318,8 +322,12 @@ function coreBrightness() {
 
 // getBlueLightStatus: fills a struct {BOOL active, enabled, sunSchedulePermitted; int mode;
 // {int hour, minute} from, to; uint64 disableFlags; BOOL available}. The bridge can't pass a struct
-// pointer to an Objective-C method, so it goes through objc_msgSend with a byte buffer.
+// pointer to an Objective-C method, so it goes through objc_msgSend with a byte buffer (64 bytes for a
+// 40-byte struct). The method's type encoding is checked first: if Apple changes the layout, the row
+// hides itself instead of misreading memory. Older macOS versions end the struct at disableFlags.
+const BLUE_LIGHT_STATUS = /^\^\{[^=]*=BBBi\{[^=]*=\{[^=]*=ii\}\{[^=]*=ii\}\}Q(B?)\}$/;
 let blueLight = undefined;
+let blueLightHasAvailable = false;
 function blueLightClient() {
   if (blueLight !== undefined) return blueLight;
   blueLight = null;
@@ -329,6 +337,11 @@ function blueLightClient() {
   if (C.respondsToSelector("supportsBlueLightReduction") && !C.supportsBlueLightReduction) return null;
   const c = C.alloc.init;
   if (c.isNil() || !c.respondsToSelector("setEnabled:") || !c.respondsToSelector("getBlueLightStatus:")) return null;
+  const sig = c.methodSignatureForSelector("getBlueLightStatus:");
+  if (sig.isNil() || String(sig.methodReturnType) !== "B") return null;
+  const m = String(sig.getArgumentTypeAtIndex(2)).match(BLUE_LIGHT_STATUS);
+  if (!m) return null;
+  blueLightHasAvailable = m[1] === "B";
   blueLight = c;
   return c;
 }
@@ -346,9 +359,9 @@ function nightShiftState() {
   const buf = $.NSMutableData.dataWithLength(64);
   if (!$.objc_msgSend(c, $.sel_registerName("getBlueLightStatus:"), buf.mutableBytes)) return null;
   const s = $.NSString.alloc.initWithDataEncoding(buf, $.NSISOLatin1StringEncoding).js;
+  if (s.length < 40) return null;
   const i32 = (o) => (s.charCodeAt(o) | (s.charCodeAt(o + 1) << 8) | (s.charCodeAt(o + 2) << 16) | (s.charCodeAt(o + 3) << 24));
-  const available = s.charCodeAt(32) !== 0;
-  if (!available) return null;
+  if (blueLightHasAvailable && s.charCodeAt(32) === 0) return null; // no display that supports it
   return {
     on: s.charCodeAt(1) !== 0,
     mode: i32(4), // 0 off, 1 sunset to sunrise, 2 custom
@@ -366,7 +379,7 @@ function trueToneState() {
       const C = $.NSClassFromString("CBTrueToneClient");
       if (!C.isNil()) {
         const c = C.alloc.init;
-        if (!c.isNil() && c.respondsToSelector("supported") && c.respondsToSelector("setEnabled:")) trueToneClient = c;
+        if (!c.isNil() && ["supported", "enabled", "setEnabled:"].every((sel) => c.respondsToSelector(sel))) trueToneClient = c;
       }
     }
   }
@@ -617,7 +630,67 @@ function awakeState() {
   // Started before the last boot: the pid now belongs to another process (a reused pid).
   if (!(Number(s.started) >= bootMs())) return null;
   if (until && until <= now) return null;
-  return { pid, until, left: until ? (until - now) / 60000 : null };
+  // caffeinate ended and its pid was reused in the same boot
+  if (!/(^|\/)caffeinate$/.test(processCommand(pid))) return null;
+  const app = typeof s.app === "string" && clean(s.app) ? clean(s.app) : "";
+  return { pid, until, app, at: typeof s.at === "string" ? s.at : "", left: until ? (until - now) / 60000 : null };
+}
+
+function awakeLeft(s) {
+  if (s.app) return `while ${oneLine(s.app, 40)} runs`;
+  if (s.left === null) return "until you stop it";
+  const left = `${fmtMinutes(Math.ceil(s.left))} left`;
+  return s.at ? `until ${s.at}, ${left}` : left;
+}
+
+// "until 17:30", "until 5pm", "5:30 pm", "at 9" → {until: epoch ms of the next such time, label};
+// null if not a clock time. Local calendar arithmetic, so a DST change in between is handled.
+// Without am/pm, an hour up to 12 means whichever of h:mm and h+12:mm comes first.
+function parseClock(q, now) {
+  const s = fold(q).trim().replace(/\s+/g, " ").replace(/([ap])\.m\.?$/, "$1m"); // "5 p.m." → "5 pm"
+  const m = s.match(/^(?:(?:until|till|til|to|at) ?)?(\d{1,2})(?:[:h.](\d{2}))? ?(am|pm|a|p)?$/);
+  if (!m) return null;
+  const explicitWord = /^(until|till|til|to|at)/.test(s);
+  if (!explicitWord && !m[3]) return null; // a bare "45" or "1:30" is a duration
+  let h = Number(m[1]);
+  const min = m[2] ? Number(m[2]) : 0;
+  if (min > 59) return null;
+  const ampm = m[3] ? m[3][0] : "";
+  if (ampm) {
+    if (h < 1 || h > 12) return null;
+    h = (h % 12) + (ampm === "p" ? 12 : 0);
+  } else if (h > 23) return null;
+  const at = (hour) => {
+    const d = new Date(now);
+    d.setHours(hour, min, 0, 0);
+    if (d.getTime() <= now) d.setDate(d.getDate() + 1);
+    d.setHours(hour, min, 0, 0); // again, in case the day added crossed a DST change
+    return d.getTime();
+  };
+  let until = at(h);
+  if (!ampm && h >= 1 && h <= 12) until = Math.min(until, at(h === 12 ? 0 : h + 12));
+  const d = new Date(until);
+  const label = ampm
+    ? `${((d.getHours() + 11) % 12) + 1}:${String(d.getMinutes()).padStart(2, "0")} ${d.getHours() < 12 ? "AM" : "PM"}`
+    : hm([d.getHours(), d.getMinutes()]);
+  return { until, label };
+}
+
+// Regular apps that are running, to keep the Mac awake while one of them runs (caffeinate -w).
+function runningApps() {
+  if (FIXTURE) return (FIXTURE.apps || []).filter((a) => a && a.pid > 0).map((a) => ({ pid: a.pid, name: String(a.name || "") }));
+  ObjC.import("AppKit");
+  const running = $.NSWorkspace.sharedWorkspace.runningApplications;
+  const self = Number($.NSProcessInfo.processInfo.processIdentifier);
+  const out = [];
+  for (let i = 0; i < running.count; i++) {
+    const a = running.objectAtIndex(i);
+    if (Number(a.activationPolicy) !== 0) continue;
+    const pid = Number(a.processIdentifier);
+    if (pid === self) continue;
+    out.push({ pid, name: a.localizedName.isNil() ? "" : a.localizedName.js });
+  }
+  return out;
 }
 
 function bootMs() {
@@ -628,7 +701,7 @@ function bootMs() {
 // "45", "45m", "1h", "1.5h", "1h30", "1h 30m", "1:30", "2 hours" → minutes; null if not a duration
 function parseDuration(q) {
   const s = fold(q).trim().replace(/\s+/g, " ");
-  let m = s.match(/^(\d{1,2}):(\d{2})$/);
+  let m = s.match(/^(\d{1,2}):([0-5]\d)$/);
   if (m) return Number(m[1]) * 60 + Number(m[2]);
   m = s.match(/^(\d+(?:\.\d+)?) ?(h|hr|hrs|hour|hours)(?: ?(\d+) ?(m|min|mins|minute|minutes)?)?$/);
   if (m) return Math.round(Number(m[1]) * 60 + (m[3] ? Number(m[3]) : 0));
@@ -639,19 +712,41 @@ function parseDuration(q) {
 
 const MAX_AWAKE = 7 * 24 * 60;
 
-function awakeStart(minutes) {
+// minutes: 0 = until stopped; opts.until: an end time (epoch ms, with its label opts.at);
+// opts.watch: keep awake while that app's process runs.
+function awakeStart(minutes, opts = {}) {
+  const now = nowMs();
+  let seconds = minutes * 60;
+  let until = minutes ? now + minutes * 60000 : 0;
+  if (opts.until) {
+    seconds = Math.ceil((opts.until - now) / 1000);
+    if (!(seconds > 0)) return "That time has already passed";
+    until = opts.until;
+  }
+  let app = "";
+  if (opts.watch) {
+    const a = runningApps().find((x) => x.pid === opts.watch);
+    if (!a) return "That app isn’t running any more";
+    app = a.name || "the app";
+  }
   awakeStop(true);
   // Alfred passes a checkbox as "1"/"0"; an empty or unset value means the default (on)
   const display = boolish(String(env("awake_display", "")).trim() || "1", true);
   const args = ["/usr/bin/caffeinate", display ? "-di" : "-i"];
-  if (minutes) args.push("-t", String(minutes * 60));
+  if (opts.watch) args.push("-w", String(opts.watch));
+  else if (seconds) args.push("-t", String(seconds));
   let pid;
   if (DRY) {
     dry(args.join(" "));
     pid = FIXTURE && FIXTURE.nextPid ? Number(FIXTURE.nextPid) : 0;
   } else pid = spawnDetached(args);
   if (!DRY && !pid) return "Couldn’t start caffeinate";
-  writeJSON(awakePath(), { pid, until: minutes ? nowMs() + minutes * 60000 : 0, started: nowMs() });
+  const state = { pid, until: opts.watch ? 0 : until, started: now };
+  if (app) state.app = app;
+  if (opts.until && opts.at) state.at = String(opts.at);
+  writeJSON(awakePath(), state);
+  if (app) return `☕ Keeping your Mac awake while ${oneLine(app, 40)} runs`;
+  if (opts.until) return `☕ Keeping your Mac awake until ${opts.at || fmtMinutes(seconds / 60)}`;
   return minutes ? `☕ Keeping your Mac awake for ${fmtMinutes(minutes)}` : "☕ Keeping your Mac awake until you stop it";
 }
 
@@ -757,8 +852,8 @@ const ROWS = [
     id: "widgets", name: "Desktop Widgets", syn: "desktop widgets hide show",
     row() {
       if (macosMajor() < 14) return null;
-      const hidden = boolish(pref("com.apple.WindowManager", "StandardHideWidgets"), false);
-      return toggleItem("widgets", "Desktop Widgets", !hidden, "widgets");
+      const hidden = boolish(pref("com.apple.WindowManager", widgetsKey()), false);
+      return withSubtitle(toggleItem("widgets", "Desktop Widgets", !hidden, "widgets"), stageManager() ? "In Stage Manager" : "");
     },
   },
   {
@@ -847,11 +942,21 @@ function hm(pair) {
 
 // Desktop icons: Finder’s CreateDesktop everywhere; macOS 14 and 15 also have "Show Items on Desktop"
 // (WindowManager StandardHideDesktopIcons), which hides them without restarting Finder.
+// With Stage Manager on, macOS uses the "In Stage Manager" settings instead (HideDesktop, hidden by
+// default, and StageManagerHideWidgets), so read and write those.
+function stageManager() {
+  return boolish(pref("com.apple.WindowManager", "GloballyEnabled"), false);
+}
 function desktopIconsState() {
   const create = boolish(pref("com.apple.finder", "CreateDesktop"), true);
   const wm = macosMajor() >= 14 && macosMajor() <= 15;
-  const wmHidden = wm && boolish(pref("com.apple.WindowManager", "StandardHideDesktopIcons"), false);
-  return { shown: create && !wmHidden, create, wm, wmHidden, needsFinder: !wm || !create };
+  const sm = wm && stageManager();
+  const wmKey = sm ? "HideDesktop" : "StandardHideDesktopIcons";
+  const wmHidden = wm && boolish(pref("com.apple.WindowManager", wmKey), sm);
+  return { shown: create && !wmHidden, create, wm, wmKey, wmHidden, needsFinder: !wm || !create };
+}
+function widgetsKey() {
+  return stageManager() ? "StageManagerHideWidgets" : "StandardHideWidgets";
 }
 
 const POSITIONS = new Map([["bottom", "Bottom"], ["left", "Left"], ["right", "Right"]]);
@@ -883,9 +988,8 @@ function awakeRow() {
   if (!s) {
     return { uid: "awake", title: "Keep Awake: Off", subtitle: "↩ Keep your Mac awake for a while", valid: false, autocomplete: "awake ", icon: icon("awake_off") };
   }
-  const left = s.left === null ? "until you stop it" : `${fmtMinutes(Math.ceil(s.left))} left`;
   return {
-    uid: "awake", title: `Keep Awake: On ✓ (${left})`, subtitle: "↩ Stop · ⇥ Choose another duration", arg: action("awake-stop"),
+    uid: "awake", title: `Keep Awake: On ✓ (${awakeLeft(s)})`, subtitle: "↩ Stop · ⇥ Choose another duration", arg: action("awake-stop"),
     autocomplete: "awake ", icon: icon("awake"),
   };
 }
@@ -1027,22 +1131,33 @@ function awakeItems(rest) {
   const s = awakeState();
   const items = [];
   if (s) {
-    const left = s.left === null ? "until you stop it" : `${fmtMinutes(Math.ceil(s.left))} left`;
-    items.push({ uid: "awake:stop", title: "Stop Keeping Awake", subtitle: `On ✓ (${left}) · ↩ Let your Mac sleep again`, arg: action("awake-stop"), icon: icon("stop") });
+    items.push({ uid: "awake:stop", title: "Stop Keeping Awake", subtitle: `On ✓ (${awakeLeft(s)}) · ↩ Let your Mac sleep again`, arg: action("awake-stop"), icon: icon("stop") });
   }
   const r = String(rest).trim();
+  const start = s ? "↩ Replace the current timer" : "↩ Start";
+  const wm = fold(r).match(/^(?:while|app|apps)(?:\s+(.*))?$/);
+  if (wm) return items.concat(awakeWhileItems(wm[1] || "", start));
+  const clock = r ? parseClock(r, nowMs()) : null;
+  if (clock) {
+    const m = Math.ceil((clock.until - nowMs()) / 60000);
+    items.push({
+      uid: "awake:until", title: `Keep Awake Until ${clock.label}`, subtitle: `${start} · ${fmtMinutes(m)} from now`,
+      arg: action("awake", { minutes: 0, until: clock.until, at: clock.label }), icon: icon("awake"),
+    });
+    return items;
+  }
   const min = r ? parseDuration(r) : null;
   const add = (m) => items.push({
     uid: `awake:${m}`, title: m ? `Keep Awake for ${fmtMinutes(m)}` : "Keep Awake Until Stopped",
-    subtitle: s ? "↩ Replace the current timer" : "↩ Start", arg: action("awake", { minutes: m }), icon: icon("awake"),
+    subtitle: start, arg: action("awake", { minutes: m }), icon: icon("awake"),
   });
   if (r && min === null) {
-    if (/^(on|forever|indefinitely|always|until|stop|off)/.test(fold(r))) {
+    if (/^(on|forever|indefinitely|always|until|stop|off)/.test(fold(r)) && !/^(until|till|til|at|to)\s*\d/.test(fold(r))) {
       if (/^(stop|off)/.test(fold(r))) return items.length ? items : [info("Keep Awake is off", "", "awake_off", { uid: "awake:off" })];
       add(0);
       return items;
     }
-    items.push(info("Type a duration", "Like 45, 90m, 2h or 1:30", "info", { uid: "awake:help" }));
+    items.push(info("Type a duration or a time", "Like 45, 90m, 2h, 1:30, until 17:30 or 5pm, or “while” to pick an app", "info", { uid: "awake:help" }));
     return items;
   }
   if (min !== null) {
@@ -1052,7 +1167,25 @@ function awakeItems(rest) {
   }
   AWAKE_PRESETS.forEach(add);
   add(0);
+  items.push({
+    uid: "awake:while", title: "Keep Awake While an App Runs…", subtitle: "↩ Pick the app, like a download or an export that’s running",
+    valid: false, autocomplete: "awake while ", icon: icon("awake"),
+  });
   return items;
+}
+
+function awakeWhileItems(rest, start) {
+  const words = fold(rest).split(/\s+/).filter(Boolean);
+  const seen = new Set();
+  const apps = runningApps()
+    .filter((a) => clean(a.name) && !seen.has(a.pid) && seen.add(a.pid))
+    .filter((a) => !words.length || words.every((w) => fold(a.name).includes(w)))
+    .sort((a, b) => fold(a.name).localeCompare(fold(b.name)));
+  if (!apps.length) return [info(words.length ? "No matching app" : "No apps are running", "", "info", { uid: "awake:noapp" })];
+  return apps.slice(0, 50).map((a) => ({
+    uid: `awake:while:${a.pid}`, title: `Keep Awake While ${oneLine(a.name, 60)} Runs`, subtitle: `${start} · stops when it quits`,
+    arg: action("awake", { minutes: 0, watch: a.pid }), icon: icon("awake"),
+  }));
 }
 
 function focusItems(rest) {
@@ -1119,6 +1252,23 @@ function listItems(query) {
 const NAMES = { dark: "Dark Mode", nightshift: "Night Shift", truetone: "True Tone", lowpower: "Low Power Mode", desktop: "Desktop Icons",
   widgets: "Desktop Widgets", hidden: "Hidden Files", dockhide: "Dock Auto-hide", magnify: "Dock Magnification", menubar: "Menu Bar Auto-hide" };
 
+// The current state of a toggle, for the Hotkeys that flip one without showing the list; null if unknown.
+function isOn(id) {
+  switch (id) {
+    case "dark": return pref("NSGlobalDomain", "AppleInterfaceStyle") === "Dark";
+    case "nightshift": { const x = nightShiftState(); return x ? !!x.on : null; }
+    case "truetone": { const x = trueToneState(); return x ? !!x.on : null; }
+    case "lowpower": { const x = lowPowerState(); return x ? x.on : null; }
+    case "desktop": return desktopIconsState().shown;
+    case "widgets": return macosMajor() >= 14 ? !boolish(pref("com.apple.WindowManager", widgetsKey()), false) : null;
+    case "hidden": return boolish(pref("com.apple.finder", "AppleShowAllFiles"), false);
+    case "dockhide": return boolish(pref("com.apple.dock", "autohide"), false);
+    case "magnify": return boolish(pref("com.apple.dock", "magnification"), false);
+    case "menubar": return boolish(pref("NSGlobalDomain", "_HIHideMenuBar"), false);
+    default: return null;
+  }
+}
+
 function onOff(id, v) {
   return `${NAMES[id]} ${v ? "on" : "off"}`;
 }
@@ -1153,13 +1303,13 @@ function toggle(id, value) {
     case "desktop": {
       const s = desktopIconsState();
       if (v) {
-        if (s.wmHidden) defaultsWrite("com.apple.WindowManager", "StandardHideDesktopIcons", false);
+        if (s.wmHidden) defaultsWrite("com.apple.WindowManager", s.wmKey, false);
         if (!s.create) {
           defaultsWrite("com.apple.finder", "CreateDesktop", true);
           restartFinder();
         }
       } else if (s.wm) {
-        defaultsWrite("com.apple.WindowManager", "StandardHideDesktopIcons", true); // no Finder restart needed
+        defaultsWrite("com.apple.WindowManager", s.wmKey, true); // no Finder restart needed
       } else {
         defaultsWrite("com.apple.finder", "CreateDesktop", false);
         restartFinder();
@@ -1167,7 +1317,7 @@ function toggle(id, value) {
       return `🖥 ${onOff(id, v)}`;
     }
     case "widgets":
-      defaultsWrite("com.apple.WindowManager", "StandardHideWidgets", !v);
+      defaultsWrite("com.apple.WindowManager", widgetsKey(), !v);
       return `🧩 ${onOff(id, v)}`;
     case "hidden":
       defaultsWrite("com.apple.finder", "AppleShowAllFiles", v);
@@ -1340,10 +1490,30 @@ function act(json) {
     case "awake": {
       const m = a.minutes;
       if (typeof m !== "number" || !Number.isInteger(m) || m < 0 || m > MAX_AWAKE) return "Invalid action";
-      msg = awakeStart(m);
+      const opts = {};
+      if (a.until !== undefined) {
+        if (m !== 0 || typeof a.until !== "number" || !Number.isFinite(a.until) || a.until <= 0 || a.until > nowMs() + MAX_AWAKE * 60000) return "Invalid action";
+        opts.until = a.until;
+        opts.at = typeof a.at === "string" ? oneLine(a.at, 20) : "";
+      }
+      if (a.watch !== undefined) {
+        if (m !== 0 || opts.until || !Number.isInteger(a.watch) || a.watch <= 0) return "Invalid action";
+        opts.watch = a.watch;
+      }
+      msg = awakeStart(m, opts);
       break;
     }
     case "awake-stop": msg = awakeStop(false); break;
+    case "flip": {
+      if (a.id === "awake") {
+        msg = awakeState() ? awakeStop(false) : awakeStart(0);
+        break;
+      }
+      if (!Object.prototype.hasOwnProperty.call(NAMES, a.id)) return "Invalid action";
+      const on = isOn(a.id);
+      msg = on === null ? `${NAMES[a.id]} isn’t available on this Mac` : toggle(a.id, !on);
+      break;
+    }
     case "eject": msg = ejectAction(a); break;
     case "eject-all": msg = ejectAll(!!a.force); break;
     case "reveal": msg = reveal(a.path); break;

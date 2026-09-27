@@ -16,7 +16,7 @@ See every toggle with its current state via the `tog` keyword. A toggle that’s
 * <kbd>⌘</kbd><kbd>↩</kbd> Turn it on or off and keep the list open, to change several in a row.
 * <kbd>⇥</kbd> Open the choices of rows that have them (Focus, Keep Awake, Input Source, Eject).
 
-Desktop icons and hidden files are Finder settings that Finder only reads when it starts, so changing them restarts Finder. It reopens its windows, but let file copies finish first. On macOS 14 and 15, hiding desktop icons uses “Show Items on Desktop” and doesn’t restart Finder.
+Desktop icons and hidden files are Finder settings that Finder only reads when it starts, so changing them restarts Finder. It reopens its windows, but let file copies finish first. On macOS 14 and 15, hiding desktop icons uses “Show Items on Desktop” (or “In Stage Manager” while Stage Manager is on) and doesn’t restart Finder.
 
 Changing Low Power Mode asks for an administrator password in macOS’s own dialog, which says what will change.
 
@@ -28,7 +28,7 @@ macOS has no way for other apps to change Focus, so it runs a Shortcut of yours.
 
 ### Keep Awake
 
-Keep your Mac awake for 15 minutes to 4 hours or until you stop it via `tog awake`, or type any duration, like `tog awake 45`, `tog awake 1h30` or `tog awake 2h`. While it’s on, the row shows the time left and <kbd>↩</kbd> stops it. Whether the display stays on too is set in the Workflow’s Configuration.
+Keep your Mac awake for 15 minutes to 4 hours or until you stop it via `tog awake`, or type any duration, like `tog awake 45`, `tog awake 1h30` or `tog awake 2h`. Type a time to stay awake until then, like `tog awake until 17:30` or `tog awake 5pm`, or pick an app via `tog awake while` to stay awake until it quits. While it’s on, the row shows the time left and <kbd>↩</kbd> stops it. Whether the display stays on too is set in the Workflow’s Configuration.
 
 ![Keeping the Mac awake](images/awake.png)
 
@@ -54,7 +54,7 @@ Eject all external disks, disk images and network shares at once, or pick one vi
 
 Choose the Dock position via `tog position`. The list also starts the screen saver, locks the screen, puts the displays to sleep, and hides all apps or every app but the frontmost one.
 
-Configure the Hotkey to show the toggles from anywhere. The keyword can be changed in the Workflow’s Configuration.
+Configure the Hotkeys to show the toggles, turn Dark Mode on or off, or turn Keep Awake on or off from anywhere. The keyword can be changed in the Workflow’s Configuration.
 
 ## Development
 

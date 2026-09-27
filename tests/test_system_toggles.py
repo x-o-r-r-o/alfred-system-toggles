@@ -80,6 +80,9 @@ def call(args, fx=None, data=None, **env):
     e.update(env)
     if fx is not False:
         e["ST_FIXTURE"] = fx or fixture()
+    elif e.get("ST_DRY_RUN") != "1":
+        # hard guard: a test without a fixture must be a dry run, so it can never change a real setting
+        raise AssertionError("a test without a fixture must set ST_DRY_RUN=1")
     out = subprocess.run(["osascript", "-l", "JavaScript", "./toggles.js", *args], cwd=SRC, env=e,
                          capture_output=True, text=True, timeout=60)
     assert out.returncode == 0, out.stderr
@@ -328,11 +331,11 @@ class AwakeTests(unittest.TestCase):
     def test_durations(self):
         it = sf("awake")
         self.assertEqual(titles(it), ["Keep Awake for 15 min", "Keep Awake for 30 min", "Keep Awake for 1 h", "Keep Awake for 2 h",
-                                      "Keep Awake for 4 h", "Keep Awake Until Stopped"])
+                                      "Keep Awake for 4 h", "Keep Awake Until Stopped", "Keep Awake While an App Runs…"])
         for q, m in (("45", 45), ("90m", 90), ("1h30", 90), ("1h 30m", 90), ("1:30", 90), ("2 hours", 120), ("1.5h", 90), ("20 min", 20)):
             self.assertEqual(arg(sf("awake " + q)[0]), {"op": "awake", "minutes": m}, q)
         self.assertEqual(sf("coffee forever")[0]["title"], "Keep Awake Until Stopped")
-        self.assertEqual(sf("awake soon")[0]["title"], "Type a duration")
+        self.assertEqual(sf("awake soon")[0]["title"], "Type a duration or a time")
         self.assertEqual(sf("awake 0")[0]["title"], "Choose between 1 minute and 7 days")
         self.assertEqual(sf("awake 99999")[0]["title"], "Choose between 1 minute and 7 days")
 
@@ -441,6 +444,104 @@ class Audit3RegressionTests(unittest.TestCase):
             json.dump({"pid": 4242, "until": 0, "started": NOW - 3600000}, f)
         self.assertEqual(find(sf(fx=fixture(alive=[4242], bootMs=NOW - 60000), data=d), "Keep Awake")["title"], "Keep Awake: Off")
         self.assertIn("On ✓", find(sf(fx=fixture(alive=[4242], bootMs=NOW - 7200000), data=d), "Keep Awake")["title"])
+
+
+class IndependentAuditTests(unittest.TestCase):
+    """Independent audit (2026-09-28): fixes and v1.0 additions."""
+
+    def test_stage_manager_desktop_and_widgets(self):
+        # Stage Manager uses "In Stage Manager" settings: HideDesktop (hidden by default), StageManagerHideWidgets
+        sm = {"com.apple.WindowManager": {"GloballyEnabled": 1, "StandardHideWidgets": 0, "StageManagerHideWidgets": 1}}
+        it = sf(fx=fixture(macos=15, prefs=sm))
+        self.assertEqual(find(it, "Desktop Icons")["title"], "Desktop Icons: Off")
+        self.assertEqual(find(it, "Desktop Widgets")["title"], "Desktop Widgets: Off")
+        self.assertIn("In Stage Manager", find(it, "Desktop Widgets")["subtitle"])
+        out = act({"op": "toggle", "id": "desktop", "value": True}, fixture(macos=15, prefs=sm))
+        self.assertIn("com.apple.WindowManager HideDesktop -bool false", out)
+        self.assertNotIn("killall", out)
+        out = act({"op": "toggle", "id": "widgets", "value": True}, fixture(macos=15, prefs=sm))
+        self.assertIn("StageManagerHideWidgets -bool false", out)
+        # without Stage Manager: the standard keys
+        out = act({"op": "toggle", "id": "desktop", "value": False}, fixture(macos=14))
+        self.assertIn("StandardHideDesktopIcons -bool true", out)
+
+    def test_awake_until_a_time(self):
+        # NOW is 14:13:20 UTC
+        it = sf("awake until 17:30", TZ="UTC")
+        self.assertEqual(it[0]["title"], "Keep Awake Until 17:30")
+        self.assertIn("3 h 17 min from now", it[0]["subtitle"])
+        a = arg(it[0])
+        self.assertEqual(a["until"], NOW + (3 * 3600 + 16 * 60 + 40) * 1000)
+        self.assertEqual(sf("awake 5pm", TZ="UTC")[0]["title"], "Keep Awake Until 5:00 PM")
+        self.assertEqual(sf("awake until 7.30 p.m.", TZ="UTC")[0]["title"], "Keep Awake Until 7:30 PM")
+        self.assertEqual(sf("awake until 9", TZ="UTC")[0]["title"], "Keep Awake Until 21:00")  # the sooner of 9:00 and 21:00
+        self.assertIn("23 h 47 min", sf("awake until 14:00", TZ="UTC")[0]["subtitle"])  # passed today: tomorrow
+        self.assertEqual(arg(sf("awake 1:30")[0]), {"op": "awake", "minutes": 90})  # still a duration
+        self.assertEqual(sf("awake until 25:00")[0]["title"], "Type a duration or a time")
+        d = data_dir("until")
+        fx = fixture(nextPid=4242, alive=[4242])
+        out = act(a, fx, data=d, TZ="UTC")
+        self.assertEqual(out, "DRY RUN: /usr/bin/caffeinate -di -t 11800\n☕ Keeping your Mac awake until 17:30")
+        self.assertEqual(find(sf(fx=fx, data=d), "Keep Awake")["title"], "Keep Awake: On ✓ (until 17:30, 3 h 17 min left)")
+
+    def test_awake_until_across_dst(self):
+        # 23:00 EDT on 31 Oct 2026; clocks go back at 02:00, so 09:00 is 11 hours away, not 10
+        now = 1793502000000
+        it = sf("awake until 9am", TZ="America/New_York", ST_NOW=str(now))
+        self.assertEqual(arg(it[0])["until"], now + 11 * 3600000)
+
+    def test_awake_while_an_app_runs(self):
+        it = sf("awake")
+        self.assertEqual(it[-1]["autocomplete"], "awake while ")
+        it = sf("awake while")
+        self.assertEqual(titles(it), ["Keep Awake While Finder Runs", "Keep Awake While Mail Runs", "Keep Awake While Safari Runs"])
+        self.assertEqual(titles(sf("awake while saf")), ["Keep Awake While Safari Runs"])
+        self.assertEqual(sf("awake while zzz")[0]["title"], "No matching app")
+        d = data_dir("while")
+        fx = fixture(nextPid=4242, alive=[4242])
+        out = act(arg(sf("awake while mail")[0]), fx, data=d)
+        self.assertEqual(out, "DRY RUN: /usr/bin/caffeinate -di -w 11\n☕ Keeping your Mac awake while Mail runs")
+        self.assertEqual(find(sf(fx=fx, data=d), "Keep Awake")["title"], "Keep Awake: On ✓ (while Mail runs)")
+        self.assertEqual(act({"op": "awake", "minutes": 0, "watch": 999}, fx, data=d), "That app isn’t running any more")
+        self.assertEqual(act({"op": "awake", "minutes": 0, "until": NOW - 1000}, fx, data=d), "That time has already passed")
+        for bad in ({"minutes": 5, "watch": 11}, {"minutes": 0, "watch": "11"}, {"minutes": 0, "until": "x"},
+                    {"minutes": 0, "until": NOW + 8 * 86400000}, {"minutes": 0, "until": 0}, {"minutes": 0, "watch": -1}):
+            self.assertEqual(act(dict(bad, op="awake")), "Invalid action", bad)
+
+    def test_awake_pid_reused_by_another_process(self):
+        d = data_dir("reused")
+        with open(os.path.join(d, "awake.json"), "w") as f:
+            json.dump({"pid": 4242, "until": 0, "started": NOW}, f)
+        fx = fixture(alive=[4242], commands={"4242": "/Applications/Safari.app/Contents/MacOS/Safari"})
+        self.assertEqual(find(sf(fx=fx, data=d), "Keep Awake")["title"], "Keep Awake: Off")
+        self.assertEqual(act({"op": "awake-stop"}, fx, data=d), "Keep Awake was already off")
+
+    def test_duration_minutes_over_59(self):
+        self.assertEqual(sf("awake 1:99")[0]["title"], "Type a duration or a time")
+
+    def test_hotkey_flips(self):
+        self.assertEqual(act({"op": "flip", "id": "dark"}), "DRY RUN: System Events: dark mode = false\n☀️ Dark Mode off")
+        self.assertIn("AppleShowAllFiles -bool true", act({"op": "flip", "id": "hidden"}))
+        self.assertEqual(act({"op": "flip", "id": "nightshift"}, fixture(nightShift=None)), "Night Shift isn’t available on this Mac")
+        d = data_dir("flip")
+        fx = fixture(nextPid=4242, alive=[4242])
+        self.assertEqual(act({"op": "flip", "id": "awake"}, fx, data=d), "DRY RUN: /usr/bin/caffeinate -di\n☕ Keeping your Mac awake until you stop it")
+        self.assertEqual(act({"op": "flip", "id": "awake"}, fx, data=d), "DRY RUN: /bin/kill 4242\n💤 Your Mac can sleep again")
+        for bad in ("__proto__", "constructor", "lock", 5):
+            self.assertEqual(act({"op": "flip", "id": bad}), "Invalid action", bad)
+
+    def test_hotkey_scripts_in_plist(self):
+        with open(os.path.join(SRC, "info.plist"), "rb") as f:
+            info = plistlib.load(f)
+        scripts = [o["config"]["script"] for o in info["objects"] if o["type"] == "alfred.workflow.action.script"]
+        for kind in ("dark", "awake"):
+            s = [x for x in scripts if '"id":"%s"' % kind in x][0]
+            a = s.split("act '", 1)[1].rsplit("'", 1)[0]
+            self.assertNotIn("Invalid", act(a))
+
+    def test_test_harness_refuses_real_actions(self):
+        with self.assertRaises(AssertionError):
+            call(["act", json.dumps({"op": "lock"})], False)
 
 
 class ToggleActionTests(unittest.TestCase):
@@ -552,6 +653,14 @@ class RealSystemTests(unittest.TestCase):
         self.assertTrue(self.real("eject"))
         self.assertTrue(self.real("input"))
         self.assertTrue(self.real("position"))
+
+    def test_real_brightness_rows_read_safely(self):
+        # CoreBrightness is private: the rows are either well-formed or hidden, never an error row
+        it = self.real("")
+        self.assertFalse(any(i["title"].startswith("Couldn’t") for i in it), titles(it))
+        for i in it:
+            if i["uid"] in ("nightshift", "truetone"):
+                self.assertRegex(i["title"], r"^(Night Shift|True Tone): (On ✓|Off)$")
 
     def test_real_dry_actions(self):
         out = call(["act", json.dumps({"op": "toggle", "id": "dark", "value": True})], False, ST_DRY_RUN="1")

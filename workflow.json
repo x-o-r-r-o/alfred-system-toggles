@@ -65,16 +65,75 @@
       "note": "Runs the selected toggle or action"
     },
     {
+      "id": "hk_dark",
+      "type": "hotkey",
+      "note": "Toggle Dark Mode"
+    },
+    {
+      "id": "flip_dark",
+      "type": "script",
+      "script": "osascript -l JavaScript ./toggles.js act '{\"op\":\"flip\",\"id\":\"dark\"}'",
+      "note": "Turns Dark Mode on or off"
+    },
+    {
+      "id": "hk_awake",
+      "type": "hotkey",
+      "note": "Toggle Keep Awake"
+    },
+    {
+      "id": "flip_awake",
+      "type": "script",
+      "script": "osascript -l JavaScript ./toggles.js act '{\"op\":\"flip\",\"id\":\"awake\"}'",
+      "note": "Keeps the Mac awake until stopped, or stops it"
+    },
+    {
       "id": "notify",
       "type": "notification"
     }
   ],
   "connections": [
-    {"from": "hk_tog", "to": "sf_tog"},
-    {"from": "sf_tog", "to": "act"},
-    {"from": "sf_tog", "to": "act", "mod": "cmd"},
-    {"from": "sf_tog", "to": "act", "mod": "alt"},
-    {"from": "sf_tog", "to": "act", "mod": "ctrl"},
-    {"from": "act", "to": "notify"}
+    {
+      "from": "hk_tog",
+      "to": "sf_tog"
+    },
+    {
+      "from": "sf_tog",
+      "to": "act"
+    },
+    {
+      "from": "sf_tog",
+      "to": "act",
+      "mod": "cmd"
+    },
+    {
+      "from": "sf_tog",
+      "to": "act",
+      "mod": "alt"
+    },
+    {
+      "from": "sf_tog",
+      "to": "act",
+      "mod": "ctrl"
+    },
+    {
+      "from": "act",
+      "to": "notify"
+    },
+    {
+      "from": "hk_dark",
+      "to": "flip_dark"
+    },
+    {
+      "from": "flip_dark",
+      "to": "notify"
+    },
+    {
+      "from": "hk_awake",
+      "to": "flip_awake"
+    },
+    {
+      "from": "flip_awake",
+      "to": "notify"
+    }
   ]
 }
