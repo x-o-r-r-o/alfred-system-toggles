@@ -57,13 +57,14 @@ Plus the many single-purpose Alfred toggles (dark mode, hidden files, caffeinate
 - [ ] Desktop widgets toggle applies without a restart
 - [ ] Eject a USB drive with two partitions, an APFS drive, a DMG and an SMB share; busy disk (file open in Preview) names Preview; ⌥ force works
 - [ ] Input source switch with 2+ layouts and a CJK input method
-- [ ] Keep Awake: `pmset -g assertions` shows caffeinate; stop works; survives Alfred closing
-- [ ] Keep Awake until 17:30 / 5pm shows the right time left; `awake while` on an app ends when the app quits (row turns Off)
+- [x] Keep Awake: `pmset -g assertions` shows caffeinate; stop works; survives Alfred closing
+- [x] Keep Awake until 17:30 / 5pm shows the right time left; `awake while` on an app ends when the app quits (row turns Off)
 - [ ] Hotkeys: Dark Mode hotkey flips appearance and notifies; Keep Awake hotkey starts, then stops
 - [ ] Stage Manager on (macOS 14/15): Desktop Icons / Widgets rows match System Settings › Desktop & Dock “In Stage Manager”, and toggling applies without a restart
 - [ ] Lock screen, screen saver, sleep displays, hide all/others
 - [ ] Focus Shortcut run and state with and without Full Disk Access
 - [ ] macOS 13: rows that need 14+ (widgets) are hidden; System Events `autohide menu bar` works
+- [x] Screenshots for every `images/*.png` in the README (fixture state, dry run)
 
 ## Ideas for v1.1
 Ranked by value and risk (independent audit, 2026-09-28):
